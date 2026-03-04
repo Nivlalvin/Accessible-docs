@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccessibleDocs - API Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+    <div class="max-w-5xl mx-auto space-y-8">
+        <h1 class="text-3xl font-bold text-blue-600">AccessibleDocs Backend Tester</h1>
+
+        <div class="bg-white p-6 rounded shadow">
+            <h2 class="text-xl font-bold mb-4">1. Upload Document</h2>
+            <input type="file" id="fileInput" class="mb-4 block w-full border border-gray-300 rounded p-2">
+            <button onclick="processDocument()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload & Process</button>
+            <p id="uploadStatus" class="text-sm text-gray-500 mt-2"></p>
+            <p class="text-xs text-green-600 font-bold mt-1" id="docIdDisplay"></p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold mb-4">2. Extracted Original Text</h2>
+                <textarea id="originalText" class="w-full h-64 border rounded p-2 text-sm" placeholder="Text will appear here..."></textarea>
+                <div class="mt-4 flex space-x-2">
+                    <button onclick="simplifyText()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Simplify Text</button>
+                    <button onclick="extractTerms()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Extract Terms</button>
+                </div>
+                <p id="actionStatus" class="text-sm text-gray-500 mt-2"></p>
+            </div>
+
+            <div class="bg-white p-6 rounded shadow">
+                <h2 class="text-xl font-bold mb-4">3. AI Output</h2>
+                <div class="flex space-x-2 mb-2 border-b pb-2">
+                    <button onclick="showTab('child')" class="text-sm font-bold text-blue-600">Child</button>
+                    <button onclick="showTab('teen')" class="text-sm font-bold text-blue-600">Teen</button>
+                    <button onclick="showTab('adult')" class="text-sm font-bold text-blue-600">Adult</button>
+                    <button onclick="showTab('terms')" class="text-sm font-bold text-purple-600">Terms</button>
+                </div>
+                <textarea id="outputText" class="w-full h-48 border rounded p-2 text-sm bg-gray-50" readonly placeholder="Output will appear here..."></textarea>
+                <p id="readingScore" class="text-xs text-gray-500 mt-2"></p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded shadow">
+            <h2 class="text-xl font-bold mb-4">4. Chat with Document (RAG)</h2>
+            <div id="chatHistory" class="h-48 border rounded p-4 mb-4 overflow-y-auto bg-gray-50 text-sm space-y-2">
+                <p class="text-gray-400 italic">Upload a document first to start chatting...</p>
+            </div>
+            <div class="flex space-x-2">
+                <input type="text" id="questionInput" class="flex-1 border rounded p-2" placeholder="Ask a question about the document...">
+                <button onclick="askQuestion()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Ask</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let currentDocumentId = null;
+        let simplificationData = null;
+        let termsData = null;
+
+        async function processDocument() {
+            const fileInput = document.getElementById('fileInput').files[0];
+            if (!fileInput) return alert("Please select a file first.");
+
+            document.getElementById('uploadStatus').innerText = "Extracting text and storing in Vector DB...";
+            
+            const formData = new FormData();
+            formData.append("file", fileInput);
+
+            try {
+                // 1. Get raw text for the UI
+                const textRes = await fetch(`${API_URL}/extract-text`, { method: "POST", body: formData });
+                const textData = await textRes.json();
+                document.getElementById('originalText').value = textData.text;
+
+                // 2. Process into RAG Vector DB
+                const processRes = await fetch(`${API_URL}/process-document`, { method: "POST", body: formData });
+                const processData = await processRes.json();
+                currentDocumentId = processData.document_id;
+                
+                document.getElementById('uploadStatus').innerText = "Success! Document ready.";
+                document.getElementById('docIdDisplay').innerText = `Document ID: ${currentDocumentId}`;
+                document.getElementById('chatHistory').innerHTML = ""; // clear chat
+            } catch (err) {
+                document.getElementById('uploadStatus').innerText = "Error processing document.";
+                console.error(err);
+            }
+        }
+
+        async function simplifyText() {
+            const text = document.getElementById('originalText').value;
+            if (!text) return alert("No text to simplify.");
+
+            document.getElementById('actionStatus').innerText = "Simplifying into 3 levels...";
+            
+            try {
+                const res = await fetch(`${API_URL}/simplify`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                simplificationData = await res.json();
+                document.getElementById('actionStatus').innerText = "Simplification complete!";
+                showTab('child'); // Default to child view
+            } catch (err) {
+                document.getElementById('actionStatus').innerText = "Error simplifying.";
+            }
+        }
+
+        async function extractTerms() {
+            const text = document.getElementById('originalText').value;
+            if (!text) return alert("No text to extract terms from.");
+
+            document.getElementById('actionStatus').innerText = "Extracting terms...";
+            
+            try {
+                const res = await fetch(`${API_URL}/extract-terms`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+                termsData = await res.json();
+                document.getElementById('actionStatus').innerText = "Terms extracted!";
+                showTab('terms');
+            } catch (err) {
+                document.getElementById('actionStatus').innerText = "Error extracting terms.";
+            }
+        }
+
+        function showTab(tab) {
+            const outputBox = document.getElementById('outputText');
+            const scoreBox = document.getElementById('readingScore');
+            
+            if (tab === 'terms') {
+                if (!termsData) return;
+                let text = termsData.terms.map(t => `• ${t.term}: ${t.definition}`).join('\n\n');
+                outputBox.value = text;
+                scoreBox.innerText = `Found ${termsData.count} key terms.`;
+            } else {
+                if (!simplificationData) return;
+                outputBox.value = simplificationData[tab];
+                
+                if(simplificationData.reading_analysis && simplificationData.reading_analysis.simplified[tab]) {
+                    const stats = simplificationData.reading_analysis.simplified[tab].analysis;
+                    scoreBox.innerText = `Grade Level: ${stats.grade_level} | Reading Ease: ${stats.reading_ease}`;
+                }
+            }
+        }
+
+        async function askQuestion() {
+            if (!currentDocumentId) return alert("Please upload a document first.");
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const chat = document.getElementById('chatHistory');
+            chat.innerHTML += `<p><strong>You:</strong> ${question}</p>`;
+            input.value = "";
+
+            try {
+                const res = await fetch(`${API_URL}/ask`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ document_id: currentDocumentId, question: question })
+                });
+                const data = await res.json();
+                chat.innerHTML += `<p class="text-blue-700"><strong>AI:</strong> ${data.answer}</p>`;
+                chat.scrollTop = chat.scrollHeight;
+            } catch (err) {
+                chat.innerHTML += `<p class="text-red-500"><strong>Error:</strong> Failed to get answer.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
