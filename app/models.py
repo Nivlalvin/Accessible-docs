@@ -38,3 +38,18 @@ class QuestionResponse(BaseModel):
 
 class GenericResponse(BaseModel):
     message: str
+    
+class QuizRequest(BaseModel):
+    text: str
+    level: str
+
+class QuizQuestion(BaseModel):
+    question: str
+    options: list[str]
+    correct_answer: str
+    concept_tested: str   
+    helpful_hint: str    
+    explanation: str      
+
+class QuizResponse(BaseModel):
+    questions: list[QuizQuestion]

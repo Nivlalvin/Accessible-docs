@@ -15,6 +15,7 @@ services:
       # permanently deleted every time you restart the container!
       - ./chroma_db:/app/chroma_db
       - ./temp_uploads:/app/temp_uploads
+      - .:/app
     networks:
       - accessibledocs-network
 

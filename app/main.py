@@ -12,6 +12,7 @@ from app.routes.terms import router as terms_router
 from app.routes.process import router as process_router
 from app.routes.qa import router as qa_router
 from app.routes.extract import router as extract_router
+from app.routes import extract, process, simplify, quiz
 
 # Import vector store initializer
 from app.services.rag_service import initialize_vector_store
@@ -75,3 +76,4 @@ app.include_router(terms_router)
 app.include_router(process_router)
 app.include_router(qa_router)
 app.include_router(extract_router)
+app.include_router(quiz.router)
