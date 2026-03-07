@@ -22,7 +22,7 @@ export default function Sidebar() {
     >
       {/* Logo / Toggle */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        {!collapsed && <h2 className="font-bold text-xl text-purple-700">ACCESSIBLE DOCS</h2>}
+        {!collapsed && <h2 className="font-bold text-xl text-purple-700">ELEWA</h2>}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 hover:bg-gray-100 rounded-md"

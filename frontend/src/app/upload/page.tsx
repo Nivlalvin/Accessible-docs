@@ -239,6 +239,21 @@ export default function UploadPage() {
                 </div>
               )}
               <textarea value={outputText} readOnly className="w-full h-48 border rounded p-2 text-sm bg-gray-50 text-gray-400" />
+              <div className="mt-2 flex gap-2">
+                <button 
+                  onClick={() => speechSynthesis.speak(new SpeechSynthesisUtterance(outputText))} 
+                  className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600"
+                  disabled={!outputText}
+                >
+                  Read Aloud
+                </button>
+                <button 
+                  onClick={() => speechSynthesis.cancel()} 
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Stop Reading
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-2">{readingScore}</p>
             </div>
           )}

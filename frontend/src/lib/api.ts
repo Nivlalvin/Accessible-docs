@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+// primary API used for document-related endpoints
 const api = axios.create({
   baseURL: 'http://localhost:8000',
+})
+
+// separate instance for authentication if backend auth server uses a different port
+const authClient = axios.create({
+  baseURL: 'http://localhost:8080',
 })
 
 // Attach token automatically
@@ -17,27 +23,23 @@ api.interceptors.request.use((config) => {
 
 export const authAPI = {
   login: async (email: string, password: string) => {
-    // Fake delay
-    await new Promise((res) => setTimeout(res, 800))
+    // forward request to real backend running on port 8080
+    const res = await authClient.post('/login', { email, password })
 
-    // Fake token
-    localStorage.setItem('token', 'fake-jwt-token')
+    // assume backend responds with { token, user }
+    const { token, user } = res.data
 
-    return {
-      token: 'fake-jwt-token',
-      user: { email },
-    }
+    // persist token locally for other calls
+    localStorage.setItem('token', token)
+
+    return { token, user }
   },
 
   register: async (name: string, email: string, password: string) => {
-    await new Promise((res) => setTimeout(res, 800))
-
-    localStorage.setItem('token', 'fake-jwt-token')
-
-    return {
-      token: 'fake-jwt-token',
-      user: { name, email },
-    }
+    const res = await authClient.post('/register', { name, email, password })
+    const { token, user } = res.data
+    localStorage.setItem('token', token)
+    return { token, user }
   },
 }
 

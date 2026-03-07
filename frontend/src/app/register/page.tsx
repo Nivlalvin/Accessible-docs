@@ -17,10 +17,17 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      await authAPI.register(name, email, password)
-      router.push('/login')
-    } catch (err) {
-      alert('Registration failed')
+      const response = await authAPI.register(name, email, password)
+      // if backend returns token we could auto-login
+      if (response.token) {
+        // optional: store token again to be safe
+        localStorage.setItem('token', response.token)
+      }
+      router.push('/upload')
+    } catch (err: any) {
+      console.error('Registration error', err)
+      const message = err?.response?.data?.message || 'Registration failed'
+      alert(message)
     } finally {
       setLoading(false)
     }
